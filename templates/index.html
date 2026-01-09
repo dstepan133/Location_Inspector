@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Location Inspector</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+        .badge-relevance-high {
+            background: #6610f2;
+            color: white;
+        }
+
+        .badge-relevance-medium {
+            background: #6f42c1;
+            color: white;
+        }
+
+        .badge-relevance-low {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .custom-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: white;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 350px;
+            background: #f8f9fa;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #map {
+            flex-grow: 1;
+            height: 100%;
+        }
+
+        .search-container {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            background: white;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .filter-container {
+            padding: 10px 15px;
+            display: flex;
+            gap: 10px;
+            background: white;
+            border-bottom: 1px solid #eee;
+        }
+
+        .filter-btn {
+            padding: 5px 10px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+
+        .filter-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .filter-btn.verified {
+            border-color: #28a745;
+            color: #28a745;
+        }
+
+        .filter-btn.verified.active {
+            background: #28a745;
+            color: white;
+        }
+
+        .filter-btn.mismatch {
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
+        .filter-btn.mismatch.active {
+            background: #dc3545;
+            color: white;
+        }
+
+        #results {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 0;
+            list-style: none;
+            margin: 0;
+        }
+
+        .company-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .company-item:hover {
+            background: #e9ecef;
+        }
+
+        .company-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .company-address {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .company-meta {
+            font-size: 11px;
+            color: #999;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .badge-verified {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .loader {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            display: none;
+        }
+
+        input,
+        select {
+            color: #333 !important;
+            background-color: #fff !important;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 1000px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-modal:hover,
+        .close-modal:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        table.data-table th,
+        table.data-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 13px;
+            color: #333;
+            /* Enforce dark text */
+        }
+
+        table.data-table th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+        }
+
+        table.data-table tr:hover {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="container">
+        <div id="sidebar">
+            <div class="search-container">
+                <input type="text" id="search" class="search-box" placeholder="Search companies or address...">
+                <div style="margin-top:5px;">
+                    <label style="font-size:11px; color:#555; cursor:pointer;">
+                        <input type="checkbox" id="searchNameOnly"> Search Name Only (Strict)
+                    </label>
+                </div>
+            </div>
+            <div class="filter-container">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn verified" data-filter="true">Verified</button>
+                <button class="filter-btn mismatch" data-filter="false">Issues</button>
+            </div>
+
+            <div style="padding: 10px 15px; border-bottom: 1px solid #eee; background:#f0f0f0;">
+                <div style="font-size:12px; font-weight:bold; margin-bottom:5px; color:#555;">Map Settings</div>
+                <select id="pinSizeSelect"
+                    style="width:100%; padding:5px; border-radius:4px; border:1px solid #ccc; font-size:12px;">
+                    <option value="small">Pin Size: Small (Default)</option>
+                    <option value="medium">Pin Size: Medium (1.5x)</option>
+                    <option value="large">Pin Size: Large (2x)</option>
+                </select>
+            </div>
+
+            <div style="padding: 10px 15px; border-bottom: 1px solid #eee; background:#f0f0f0;">
+                <div style="font-size:12px; font-weight:bold; margin-bottom:5px; color:#555;">Filter by Location</div>
+                <select id="continentSelect"
+                    style="width:100%; padding:5px; margin-bottom:5px; font-size:11px; border:1px solid #ccc; border-radius:4px;">
+                    <option value="all">All Continents</option>
+                </select>
+                <select id="countrySelect"
+                    style="width:100%; padding:5px; font-size:11px; border:1px solid #ccc; border-radius:4px;">
+                    <option value="all">All Countries</option>
+                </select>
+            </div>
+
+            <div style="padding: 10px 15px; border-bottom: 1px solid #eee; background:#f0f0f0;">
+                <div style="font-size:12px; font-weight:bold; margin-bottom:5px; color:#555;">Filter by Metrics</div>
+                <div style="display:flex; gap:5px;">
+                    <input type="number" id="minEloInput" placeholder="Min ELO"
+                        style="width:48%; padding:5px; font-size:11px; border:1px solid #ccc; border-radius:4px;"
+                        onchange="loadCompanies()">
+                    <input type="number" id="minAreaInput" placeholder="Min Area"
+                        style="width:48%; padding:5px; font-size:11px; border:1px solid #ccc; border-radius:4px;"
+                        onchange="loadCompanies()">
+                </div>
+            </div>
+
+            <div style="padding: 10px 15px; border-bottom: 1px solid #eee; background:#fafafa;">
+                <div style="font-size:12px; font-weight:bold; margin-bottom:5px; color:#666;">Filter by Relevance</div>
+                <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                    <label style="font-size:12px;"><input type="checkbox" class="filter-relevance" value="high"> High
+                        $$$</label>
+                    <label style="font-size:12px;"><input type="checkbox" class="filter-relevance" value="medium">
+                        Medium $$</label>
+                    <label style="font-size:12px;"><input type="checkbox" class="filter-relevance" value="low"> Low
+                        $</label>
+                </div>
+
+                <div style="font-size:12px; font-weight:bold; margin:10px 0 5px 0; color:#666;">Filter by Type</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px; max-height:80px; overflow-y:auto;">
+                    <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type" value="office">
+                        Office</label>
+                    <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type" value="store">
+                        Store</label>
+                    <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type"
+                            value="production"> Production</label>
+                    <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type"
+                            value="logistics"> Logistics</label>
+                    <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type"
+                            value="headquarter"> Headquarter</label>
+                    <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type"
+                            value="storage"> Storage</label>
+                    <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type"
+                            value="research"> Research</label>
+                    <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type"
+                            value="project"> Project Site</label>
+                </div>
+                <button onclick="applyAdvancedFilters()"
+                    style="width:100%; margin-top:10px; padding:4px; font-size:11px; cursor:pointer;">Apply
+                    Filters</button>
+
+                <button onclick="openTableModal()"
+                    style="width:100%; margin-top:10px; padding:4px; font-size:11px; cursor:pointer; background:#6c757d; color:white; border:none; border-radius:3px;">
+                    <i class="fas fa-table"></i> View as Table
+                </button>
+                <button onclick="downloadCSV()"
+                    style="width:100%; margin-top:5px; padding:4px; font-size:11px; cursor:pointer; background:#28a745; color:white; border:none; border-radius:3px;">
+                    <i class="fas fa-file-csv"></i> Export to CSV
+                </button>
+            </div>
+            <div style="padding: 0 15px 10px 15px; border-bottom: 1px solid #eee;">
+                <select id="sortSelect" style="width:100%; padding:5px; border-radius:4px; border:1px solid #ccc;">
+                    <option value="name">Sort by Name</option>
+                    <option value="relevance">Sort by Economic Relevance (High to Low)</option>
+                    <option value="type">Sort by Type</option>
+                    <option value="elo">Sort by ELO Rating (High to Low)</option>
+                    <option value="area">Sort by Area (Large to Small)</option>
+                </select>
+            </div>
+            <div id="loader" class="loader">Loading...</div>
+            <ul id="results"></ul>
+        </div>
+        <div id="map"></div>
+    </div>
+
+    <!-- Table Modal -->
+    <div id="tableModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeTableModal()">&times;</span>
+            <h2>Filtered Results</h2>
+            <div style="max-height: 60vh; overflow-y: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable('name')" style="width:20%">Company Name</th>
+                            <th onclick="sortTable('ucoin')" style="width:12%">Ucoin ID</th>
+                            <th onclick="sortTable('relevance')" style="width:12%">Economic Relevance</th>
+                            <th onclick="sortTable('type')" style="width:10%">Type</th>
+                            <th onclick="sortTable('elo')" style="width:8%">ELO</th>
+                            <th onclick="sortTable('area')" style="width:8%">Area (m²)</th>
+                            <th onclick="sortTable('address')" style="width:20%">Address</th>
+                            <th onclick="sortTable('status')" style="width:10%">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Rows -->
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top:10px; text-align:right; font-size:12px; color:#666;">
+                Showing top <span id="tableCount">0</span> results
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+    <script>
+        // ... previous code ... (No change needed here, just context)
+
+        // Modal Logic
+        const modal = document.getElementById("tableModal");
+
+        function openTableModal() {
+            renderTable(allCompanies);
+            modal.style.display = "block";
+        }
+
+        function closeTableModal() {
+            modal.style.display = "none";
+        }
+
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            document.getElementById('tableCount').innerText = data.length;
+
+            data.forEach(c => {
+                const tr = document.createElement('tr');
+
+                // Relevance Badge
+                const relevance = getRelevanceBadge(c.classification_relevance);
+
+                tr.style.cursor = 'pointer';
+                tr.onclick = () => {
+                    closeTableModal();
+                    // Treat click like clicking on map - filter by company and show this pin
+                    filterByCompany(c.name, c.id);
+                };
+
+                tr.innerHTML = `
+                    <td><b>${c.name}</b></td>
+                    <td>
+                        <a href="https://creditLab.erste-group.net/company/${c.ucoin_id || ''}/esg" target="_blank" onclick="event.stopPropagation()">
+                            ${c.ucoin_id || '-'}
+                        </a>
+                    </td>
+                    <td>${relevance} <span style="font-size:11px; color:#666;">${c.classification_relevance}</span></td>
+                    <td>${c.classification_type || '-'}</td>
+                    <td>${c.elo_rating ? c.elo_rating.toFixed(2) : '-'}</td>
+                    <td>${c.estimated_area ? c.estimated_area.toFixed(1) : '-'}</td>
+                    <td>${c.full_address}</td>
+                    <td>${c.verification.verified
+                        ? '<span style="color:green">Verified</span>'
+                        : (c.verification.distance_error > 1000
+                            ? `<span style="color:red; font-weight:bold;">Mismatch</span><div style="font-size:10px; color:#dc3545;">~${(c.verification.distance_error / 1000).toFixed(2)}km error</div>`
+                            : '<span style="color:orange">Unchecked</span>')
+                    }</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        let currentSortDir = 1; // 1 asc, -1 desc
+        function sortTable(col) {
+            currentSortDir *= -1;
+            allCompanies.sort((a, b) => {
+                let valA = '', valB = '';
+                if (col === 'name') { valA = a.name; valB = b.name; }
+                if (col === 'ucoin') { valA = a.ucoin_id || ''; valB = b.ucoin_id || ''; }
+                if (col === 'type') { valA = a.classification_type || ''; valB = b.classification_type || ''; }
+                if (col === 'elo') { valA = a.elo_rating || 0; valB = b.elo_rating || 0; return (valA - valB) * currentSortDir; }
+                if (col === 'area') { valA = a.estimated_area || 0; valB = b.estimated_area || 0; return (valA - valB) * currentSortDir; }
+                if (col === 'address') { valA = a.full_address || ''; valB = b.full_address || ''; }
+                if (col === 'status') {
+                    // Sort priority: Verified > Mismatch > Unchecked
+                    const getScore = (item) => {
+                        if (item.verification.verified) return 3;
+                        if (item.verification.distance_error > 1000) return 1;
+                        return 2;
+                    };
+                    valA = getScore(a); valB = getScore(b);
+                    return (valA - valB) * currentSortDir;
+                }
+                if (col === 'relevance') {
+                    // Simple importance map
+                    const map = { 'high': 3, 'medium': 2, 'low': 1 };
+                    valA = map[(a.classification_relevance || '').toLowerCase()] || 0;
+                    valB = map[(b.classification_relevance || '').toLowerCase()] || 0;
+                    return (valA - valB) * currentSortDir; // Numeric sort
+                }
+                return valA.localeCompare(valB) * currentSortDir;
+            });
+            renderTable(allCompanies);
+        }
+
+        // Initialize Map
+        const map = L.map('map').setView([48.2082, 16.3738], 6); // Default to Central Europe (Vienna) based on data sample
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        const markers = L.markerClusterGroup({ disableClusteringAtZoom: 12, maxClusterRadius: 35 });
+        map.addLayer(markers);
+
+        let allCompanies = [];
+        let currentFilter = 'all';
+        let currentPinSize = 'small';
+
+        document.getElementById('pinSizeSelect').addEventListener('change', (e) => {
+            currentPinSize = e.target.value;
+            renderMap(allCompanies);
+        });
+
+        // Icons
+        const defaultIcon = L.divIcon({ className: 'custom-icon', html: '<div style="background-color: #3388ff; width: 10px; height: 10px; border-radius: 50%; border: 2px solid white;"></div>' });
+
+        function getRelevanceBadge(relevance) {
+            if (!relevance) return '';
+            const lower = relevance.toLowerCase();
+            if (lower === 'high') return '<span class="badge badge-relevance-high">High ($$$)</span>';
+            if (lower === 'medium') return '<span class="badge badge-relevance-medium">Medium ($$)</span>';
+            if (lower === 'low') return '<span class="badge badge-relevance-low">Low ($)</span>';
+            return '';
+        }
+
+        function getIconClass(type) {
+            if (!type) return 'fa-map-marker-alt';
+            const t = type.toLowerCase();
+            if (t.includes('store')) return 'fa-shopping-cart';
+            if (t.includes('logis')) return 'fa-truck';
+            if (t.includes('office')) return 'fa-briefcase';
+            if (t.includes('head')) return 'fa-building';
+            if (t.includes('product')) return 'fa-industry';
+            if (t.includes('stor')) return 'fa-warehouse';
+            if (t.includes('research')) return 'fa-flask';
+            if (t.includes('project')) return 'fa-hard-hat';
+            return 'fa-map-marker-alt';
+        }
+
+        function applyAdvancedFilters() {
+            // Apply current filters from DOM
+            loadCompanies();
+        }
+
+        function loadCompanies(query = '', filter = 'all', nameExact = null, openPopupId = null) {
+            // Use current search input if not provided (allows refreshing with current search)
+            if (query === '' && document.getElementById('search')) query = document.getElementById('search').value;
+            // Use current filter if 'all' passed but UI has something else (optional, but good for consistency)
+
+            const loader = document.getElementById('loader');
+            const list = document.getElementById('results');
+            loader.style.display = 'block';
+            list.innerHTML = '';
+            markers.clearLayers();
+
+            let url = `/api/companies?q=${encodeURIComponent(query)}`;
+
+            // Search Mode
+            const nameOnly = document.getElementById('searchNameOnly').checked;
+            url += `&search_mode=${nameOnly ? 'name' : 'fuzzy'}`;
+
+            // Status Filter
+            if (nameExact) {
+                url = `/api/companies?name_exact=${encodeURIComponent(nameExact)}`;
+                document.getElementById('search').value = nameExact;
+                currentFilter = 'all';
+            }
+            if (filter !== 'all') {
+                url += `&verified=${filter}`;
+            }
+
+            // Advanced Filters (Read from DOM)
+            const typeChecks = document.querySelectorAll('.filter-type:checked');
+            typeChecks.forEach(cb => {
+                url += `&types=${encodeURIComponent(cb.value)}`;
+            });
+
+            const relChecks = document.querySelectorAll('.filter-relevance:checked');
+            relChecks.forEach(cb => {
+                url += `&relevances=${encodeURIComponent(cb.value)}`;
+            });
+
+            // Numeric Filters
+            const minElo = document.getElementById('minEloInput').value;
+            const minArea = document.getElementById('minAreaInput').value;
+            if (minElo) url += `&min_elo=${minElo}`;
+            if (minArea) url += `&min_area=${minArea}`;
+
+            const continent = document.getElementById('continentSelect').value;
+            const country = document.getElementById('countrySelect').value;
+            if (continent && continent !== 'all') url += `&continent=${encodeURIComponent(continent)}`;
+            if (country && country !== 'all') url += `&country=${encodeURIComponent(country)}`;
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    allCompanies = data;
+                    applySort();
+                    renderList(data);
+                    renderMap(data, openPopupId);
+                    loader.style.display = 'none';
+
+                    // Smart Zoom Logic
+                    if (openPopupId) {
+                        const target = data.find(c => c.id == openPopupId);
+                        if (target && target.lat && target.lon) {
+                            map.flyTo([target.lat, target.lon], 16, { duration: 1.5 });
+                        }
+                    } else if (nameExact && data.length > 0) {
+                        const group = L.featureGroup(data.map(c => L.marker([c.lat, c.lon])));
+                        if (group.getLayers().length > 0) {
+                            // Fit bounds to show all locations found
+                            map.fitBounds(group.getBounds().pad(0.1));
+                        }
+                    }
+                });
+        }
+
+        function renderList(data) {
+            const list = document.getElementById('results');
+            list.innerHTML = '';
+
+            // Show count
+            const countItem = document.createElement('div');
+            countItem.style.padding = '10px 15px';
+            countItem.style.fontSize = '12px';
+            countItem.style.color = '#666';
+            countItem.innerText = `Showing ${data.length} results`;
+            list.appendChild(countItem);
+
+            data.slice(0, 100).forEach(c => {
+                const li = document.createElement('li');
+                li.className = 'company-item';
+
+                // Badges
+                let badgeHtml = '';
+                if (c.verification.verified) badgeHtml += '<span class="badge badge-verified">Verified</span> ';
+                else if (c.verification.distance_error > 1000) badgeHtml += '<span class="badge badge-error">Mismatch</span> ';
+                else if (c.verification.geo_lat) badgeHtml += '<span class="badge badge-warning">Unchecked</span> ';
+
+                // Relevance
+                badgeHtml += getRelevanceBadge(c.classification_relevance);
+
+                const iconClass = getIconClass(c.classification_type);
+
+                li.innerHTML = `
+                    <div class="company-name">
+                        <i class="fas ${iconClass}" style="color: #666; margin-right:5px; width:15px; text-align:center;"></i>
+                        ${c.name} 
+                    </div>
+                    <div style="margin-bottom:5px;">${badgeHtml}</div>
+                    <div class="company-address">${c.full_address}</div>
+                    <div class="company-meta">
+                        <span>${c.classification_type || 'Unknown'}</span>
+                        <button class="filter-btn" style="padding: 2px 6px; font-size:10px" onclick="event.stopPropagation(); filterByCompany('${c.name.replace(/'/g, "\\'")}')">Show All Locations</button>
+                    </div>
+                `;
+                li.onclick = () => zoomToCompany(c);
+                list.appendChild(li);
+            });
+        }
+
+        function renderMap(data, openPopupId = null) {
+            markers.clearLayers();
+            const markerList = [];
+            const connectionLines = [];
+
+            data.forEach(c => {
+                if (c.lat && c.lon) {
+                    // Determine icon based on status
+                    let iconColor = '#3388ff'; // Default blue
+                    let statusText = 'Unverified';
+
+                    if (c.verification.verified) {
+                        iconColor = '#28a745'; // Green
+                        statusText = 'Verified';
+                    } else if (c.verification.distance_error > 1000) {
+                        iconColor = '#dc3545'; // Red
+                        statusText = 'Mismatch';
+                    }
+
+                    // Main Marker (Data Source)
+                    const typeIcon = createCustomIcon(iconColor, c.classification_type);
+
+                    const marker = L.marker([c.lat, c.lon], {
+                        title: c.name,
+                        icon: typeIcon
+                    });
+
+                    // Relevance Badge
+                    let relevanceHtml = getRelevanceBadge(c.classification_relevance);
+
+                    let distInfo = '';
+                    if (c.verification.distance_error > 1000) {
+                        const distKm = (c.verification.distance_error / 1000).toFixed(2);
+                        distInfo = `<br><div style="margin-top:5px; color:#dc3545; font-weight:bold; font-size:11px;">⚠️ Mismatch: ~${distKm}km discrepancy</div>`;
+                    }
+
+                    let popupContent = `
+                        <div style="min-width: 200px">
+                            <b>${c.name}</b><br>
+                            <div style="font-size:11px; margin-bottom:5px;">
+                                <a href="https://creditLab.erste-group.net/company/${c.ucoin_id || ''}/esg" target="_blank" style="color:#007bff; text-decoration:none;" onclick="event.stopPropagation()">
+                                    Ucoin ID: ${c.ucoin_id || 'N/A'} <i class="fas fa-external-link-alt" style="font-size:10px;"></i>
+                                </a>
+                            </div>
+                            <div style="margin:5px 0">${relevanceHtml} <span class="badge" style="background:${iconColor}; color:white">${statusText}</span></div>
+                            <div style="margin-bottom:5px; font-style:italic; font-size:0.9em; color:#555;">${c.classification_description || ''}</div>
+                            ${distInfo}
+                            <i class="fas ${getIconClass(c.classification_type)}"></i> ${c.classification_type || 'Unknown Type'}<br>
+                            <br>
+                             <small>Source Data Location</small><br>
+                            ${c.full_address}<br>
+                            <hr>
+                            <button onclick="filterByCompany('${c.name.replace(/'/g, "\\'")}')">Find all "${c.name}" locations</button>
+                        </div>
+                    `;
+
+                    // Handle Mismatch Visualization
+                    if (c.verification.distance_error > 1000 && c.verification.geo_lat) {
+                        // Create a "Corrected" Marker
+                        // Use same icon type but different color (orange)
+                        const correctedIcon = createCustomIcon('#ffc107', c.classification_type);
+
+                        const correctedMarker = L.marker([c.verification.geo_lat, c.verification.geo_lon], {
+                            title: `${c.name} (Geocoded)`,
+                            icon: correctedIcon
+                        });
+
+                        const distKm = (c.verification.distance_error / 1000).toFixed(2);
+
+                        correctedMarker.bindPopup(`
+                            <b>${c.name}</b><br>
+                            <small>📍 Geocoded Address Location</small><br>
+                            (Approx. ${distKm}km away from source)<br>
+                            <br>
+                            <i>${c.full_address}</i>
+                        `);
+
+                        markerList.push(correctedMarker);
+
+                        // Draw line
+                        const line = L.polyline([[c.lat, c.lon], [c.verification.geo_lat, c.verification.geo_lon]], {
+                            color: 'red',
+                            weight: 2,
+                            opacity: 0.6,
+                            dashArray: '5, 10'
+                        });
+                        connectionLines.push(line);
+
+                        popupContent += `
+                            <br>⚠️ <b>Location Mismatch!</b><br>
+                            Distance: ${(c.verification.distance_error / 1000).toFixed(2)} km<br>
+                            <button onclick="map.flyTo([${c.verification.geo_lat}, ${c.verification.geo_lon}], 16)">View Suggested Location</button>
+                         `;
+                    }
+
+                    // Add Tooltip for Hover (Importance and Type)
+                    marker.bindTooltip(`
+                        <div style="text-align:center">
+                            <b>${c.name}</b><br>
+                            ${c.classification_type || 'Unknown'}<br>
+                            ${c.classification_relevance || 'Unknown'} Importance
+                        </div>
+                    `, { direction: 'top', offset: [0, -20] });
+
+                    marker.bindPopup(popupContent);
+
+                    // Click Event: Filter by this company (if not already filtered)
+                    marker.on('click', () => {
+                        const searchBox = document.getElementById('search');
+                        if (searchBox.value !== c.name) {
+                            filterByCompany(c.name, c.id);
+                        }
+                    });
+
+                    markerList.push(marker);
+
+                    // Auto-open if specific marker requested
+                    if (openPopupId && c.id == openPopupId) {
+                        setTimeout(() => marker.openPopup(), 200);
+                    }
+                }
+            });
+
+            markers.addLayers(markerList);
+
+            // Handle lines (remove old ones if any - wait, we need a global var for lines)
+            if (window.linesLayer) map.removeLayer(window.linesLayer);
+            window.linesLayer = L.layerGroup(connectionLines).addTo(map);
+        }
+
+        function createCustomIcon(color, type) {
+            const iconClass = getIconClass(type);
+
+            // Scaling Config
+            let s = 1; // scale factor
+            if (currentPinSize === 'medium') s = 1.6; // Slightly larger than 1.5 for better effect
+            if (currentPinSize === 'large') s = 2.2;  // Slightly larger than 2.0
+
+            const baseFontSize = 22 * s;
+            const w = 44 * s;
+            const h = 55 * s;
+            const anchorX = 22 * s;
+            const anchorY = 50 * s;
+            const popupY = -45 * s;
+            const transY = -3 * s;
+            const innerScale = 0.7;
+
+            return L.divIcon({
+                className: 'custom-icon',
+                html: `<span class="fa-stack" style="font-size: ${baseFontSize}px;">
+                        <i class="fas fa-map-marker fa-stack-2x" style="color: ${color}; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3));"></i>
+                        <i class="fas ${iconClass} fa-stack-1x fa-inverse" style="transform: translateY(${transY}px) scale(${innerScale});"></i>
+                       </span>`,
+                iconSize: [w, h],
+                iconAnchor: [anchorX, anchorY],
+                popupAnchor: [0, popupY],
+                tooltipAnchor: [0, popupY]
+            });
+        }
+
+        function zoomToCompany(c) {
+            if (c.lat && c.lon) {
+                map.flyTo([c.lat, c.lon], 16);
+                // Open popup logic could be added here if we track marker references
+            }
+        }
+
+        // Debounce search
+        let debounceTimer;
+        document.getElementById('search').addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                loadCompanies(e.target.value, currentFilter);
+            }, 300);
+        });
+
+        // Search Mode Toggle
+        document.getElementById('searchNameOnly').addEventListener('change', () => {
+            loadCompanies(document.getElementById('search').value, currentFilter);
+        });
+
+        // Filter clicks
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.getAttribute('data-filter');
+                loadCompanies(document.getElementById('search').value, currentFilter);
+            });
+        });
+
+        // Sorting
+        document.getElementById('sortSelect').addEventListener('change', () => {
+            applySort();
+            renderList(allCompanies);
+        });
+
+        document.getElementById('sortSelect').addEventListener('change', () => {
+            applySort();
+            renderList(allCompanies);
+        });
+
+        document.getElementById('continentSelect').addEventListener('change', applyAdvancedFilters);
+        document.getElementById('countrySelect').addEventListener('change', applyAdvancedFilters);
+
+        function applySort() {
+            const sortVal = document.getElementById('sortSelect').value;
+            allCompanies.sort((a, b) => {
+                if (sortVal === 'name') return a.name.localeCompare(b.name);
+                if (sortVal === 'type') return (a.classification_type || '').localeCompare(b.classification_type || '');
+                if (sortVal === 'elo') return (b.elo_rating || 0) - (a.elo_rating || 0);
+                if (sortVal === 'area') return (b.estimated_area || 0) - (a.estimated_area || 0);
+                if (sortVal === 'relevance') {
+                    const map = { 'high': 3, 'medium': 2, 'low': 1, '': 0, 'unknown': 0 };
+                    const valA = map[(a.classification_relevance || '').toLowerCase()] || 0;
+                    const valB = map[(b.classification_relevance || '').toLowerCase()] || 0;
+                    return valB - valA; // Descending
+                }
+                return 0;
+            });
+        }
+
+        function filterByCompany(name, openPopupId = null) {
+            loadCompanies('', 'all', name, openPopupId);
+        }
+
+        function applyAdvancedFilters() {
+            // Trigger load with current search and main filter status
+            const searchVal = document.getElementById('search').value;
+            loadCompanies(searchVal, currentFilter);
+        }
+
+        function downloadCSV() {
+            if (!allCompanies || allCompanies.length === 0) {
+                alert("No data to export!");
+                return;
+            }
+
+            // Define headers
+            const headers = ["Company Name", "Ucoin ID", "Economic Relevance", "Type", "ELO Rating", "Area (m2)", "Address", "Status", "Distance Error (km)"];
+
+            // Map data to rows
+            const rows = allCompanies.map(c => {
+                const status = c.verification.verified ? "Verified" : (c.verification.distance_error > 1000 ? "Mismatch" : "Unchecked");
+                const distError = (c.verification.distance_error / 1000).toFixed(2);
+
+                // Escape quotes for CSV
+                const escape = (txt) => {
+                    if (txt === null || txt === undefined) return "";
+                    return `"${String(txt).replace(/"/g, '""')}"`;
+                };
+
+                return [
+                    escape(c.name),
+                    escape(c.ucoin_id),
+                    escape(c.classification_relevance),
+                    escape(c.classification_type),
+                    escape(c.elo_rating),
+                    escape(c.estimated_area),
+                    escape(c.full_address),
+                    escape(status),
+                    escape(distError)
+                ].join(",");
+            });
+
+            // Combine header and rows
+            const csvContent = [headers.join(","), ...rows].join("\n");
+
+            // Create download link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", "companies_export.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Initial load
+        loadCompanies();
+
+        // Load Location Metadata
+        fetch('/api/locations')
+            .then(r => r.json())
+            .then(data => {
+                const cSelect = document.getElementById('continentSelect');
+                data.continents.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.innerText = c;
+                    cSelect.appendChild(opt);
+                });
+
+                const uSelect = document.getElementById('countrySelect');
+                data.countries.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.innerText = c;
+                    uSelect.appendChild(opt);
+                });
+            })
+            .catch(err => console.error("Failed to load locations", err));
+    </script>
+
+</body>
+
+</html>

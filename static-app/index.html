@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Company Location Inspector (Static)</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Custom CSS -->
+  <!-- Vite handles CSS imports via JS usually, but standard link works too if put in public, 
+         BUT since we are bundling, importing in main.ts is better. 
+         However, let's keep it simple. If we import in main.ts, vite bundles it. -->
+</head>
+
+<body>
+
+  <div id="container">
+    <div id="sidebar">
+      <div class="search-container">
+        <input type="text" id="search" class="search-box" placeholder="Search companies or address...">
+        <div style="margin-top:5px;">
+          <label style="font-size:11px; color:#555; cursor:pointer;">
+            <input type="checkbox" id="searchNameOnly"> Search Name Only (Strict)
+          </label>
+        </div>
+      </div>
+      <div class="filter-container">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn verified" data-filter="true">Verified</button>
+        <button class="filter-btn mismatch" data-filter="false">Issues</button>
+      </div>
+
+      <div style="padding: 10px 15px; border-bottom: 1px solid #eee; background:#f0f0f0;">
+        <div style="font-size:12px; font-weight:bold; margin-bottom:5px; color:#555;">Filter by Location</div>
+        <select id="continentSelect"
+          style="width:100%; padding:5px; margin-bottom:5px; font-size:11px; border:1px solid #ccc; border-radius:4px;">
+          <option value="all">All Continents</option>
+        </select>
+        <select id="countrySelect"
+          style="width:100%; padding:5px; font-size:11px; border:1px solid #ccc; border-radius:4px;">
+          <option value="all">All Countries</option>
+        </select>
+      </div>
+
+      <div style="padding: 10px 15px; border-bottom: 1px solid #eee; background:#f0f0f0;">
+        <div style="font-size:12px; font-weight:bold; margin-bottom:5px; color:#555;">Filter by Metrics</div>
+        <div style="display:flex; gap:5px;">
+          <input type="number" id="minEloInput" placeholder="Min ELO"
+            style="width:48%; padding:5px; font-size:11px; border:1px solid #ccc; border-radius:4px;">
+          <input type="number" id="minAreaInput" placeholder="Min Area"
+            style="width:48%; padding:5px; font-size:11px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+      </div>
+
+      <div style="padding: 10px 15px; border-bottom: 1px solid #eee; background:#f0f0f0;">
+        <div style="font-size:12px; font-weight:bold; margin-bottom:5px; color:#555;">Map Settings</div>
+        <select id="pinSizeSelect"
+          style="width:100%; padding:5px; border-radius:4px; border:1px solid #ccc; font-size:12px;">
+          <option value="small">Pin Size: Small (Default)</option>
+          <option value="medium">Pin Size: Medium (1.5x)</option>
+          <option value="large">Pin Size: Large (2x)</option>
+        </select>
+      </div>
+
+      <div style="padding: 10px 15px; border-bottom: 1px solid #eee; background:#fafafa;">
+        <div style="font-size:12px; font-weight:bold; margin-bottom:5px; color:#666;">Filter by Relevance</div>
+        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+          <label style="font-size:12px;"><input type="checkbox" class="filter-relevance" value="high"> High
+            $$$</label>
+          <label style="font-size:12px;"><input type="checkbox" class="filter-relevance" value="medium">
+            Medium $$</label>
+          <label style="font-size:12px;"><input type="checkbox" class="filter-relevance" value="low"> Low
+            $</label>
+        </div>
+
+        <div style="font-size:12px; font-weight:bold; margin:10px 0 5px 0; color:#666;">Filter by Type</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; max-height:80px; overflow-y:auto;">
+          <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type" value="office">
+            Office</label>
+          <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type" value="store">
+            Store</label>
+          <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type" value="production">
+            Production</label>
+          <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type" value="logistics">
+            Logistics</label>
+          <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type" value="headquarter">
+            Headquarter</label>
+          <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type" value="storage">
+            Storage</label>
+          <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type" value="research">
+            Research</label>
+          <label style="font-size:11px; width:45%;"><input type="checkbox" class="filter-type" value="project"> Project
+            Site</label>
+        </div>
+        <button id="applyFiltersBtn"
+          style="width:100%; margin-top:10px; padding:4px; font-size:11px; cursor:pointer;">Apply
+          Filters</button>
+
+        <button id="viewTableBtn"
+          style="width:100%; margin-top:10px; padding:4px; font-size:11px; cursor:pointer; background:#6c757d; color:white; border:none; border-radius:3px;">
+          <i class="fas fa-table"></i> View as Table
+        </button>
+      </div>
+      <div style="padding: 0 15px 10px 15px; border-bottom: 1px solid #eee;">
+        <select id="sortSelect" style="width:100%; padding:5px; border-radius:4px; border:1px solid #ccc;">
+          <option value="name">Sort by Name</option>
+          <option value="relevance">Sort by Economic Relevance (High to Low)</option>
+          <option value="type">Sort by Type</option>
+        </select>
+      </div>
+      <div id="loader" class="loader">Loading...</div>
+      <ul id="results"></ul>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <!-- Table Modal -->
+  <div id="tableModal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal" id="closeTableModal">&times;</span>
+      <h2>Filtered Results</h2>
+      <div style="max-height: 60vh; overflow-y: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th data-sort="name" style="width:20%">Company Name</th>
+              <th data-sort="ucoin" style="width:12%">Ucoin ID</th>
+              <th data-sort="relevance" style="width:12%">Economic Relevance</th>
+              <th data-sort="type" style="width:10%">Type</th>
+              <th data-sort="elo" style="width:8%">ELO</th>
+              <th data-sort="area" style="width:8%">Area (m²)</th>
+              <th data-sort="address" style="width:20%">Address</th>
+              <th data-sort="status" style="width:10%">Status</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Rows -->
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px; text-align:right; font-size:12px; color:#666;">
+        Showing top <span id="tableCount">0</span> results
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Entry Point -->
+  <script type="module" src="/src/main.ts"></script>
+
+  <!-- Using CDN for Leaflet/Cluster for simplicity in bundling if imports tricky, 
+         BUT Vite handles imports well. Let's try to import L in main.ts. 
+         However, markercluster usually depends on global L. 
+         To be safe for "Single File" build that "just works", CDN is sometimes safer BUT requires internet.
+         User wants "Airdrop" solution -> might be offline. 
+         So we really should bundle libraries.
+         Vite will bundle imported libraries. 
+         So I'll just rely on `import` in main.ts. 
+         If markercluster fails to find L, we'll fix it. -->
+
+</body>
+
+</html>

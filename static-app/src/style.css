@@ -1,0 +1,267 @@
+        .badge-relevance-high {
+            background: #6610f2;
+            color: white;
+        }
+
+        .badge-relevance-medium {
+            background: #6f42c1;
+            color: white;
+        }
+
+        .badge-relevance-low {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .custom-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: white;
+        }
+
+        input,
+        select {
+            color: #333 !important;
+            background-color: #fff !important;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 350px;
+            background: #f8f9fa;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #map {
+            flex-grow: 1;
+            height: 100%;
+        }
+
+        .search-container {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            background: white;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .filter-container {
+            padding: 10px 15px;
+            display: flex;
+            gap: 10px;
+            background: white;
+            border-bottom: 1px solid #eee;
+        }
+
+        .filter-btn {
+            padding: 5px 10px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+
+        .filter-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .filter-btn.verified {
+            border-color: #28a745;
+            color: #28a745;
+        }
+
+        .filter-btn.verified.active {
+            background: #28a745;
+            color: white;
+        }
+
+        .filter-btn.mismatch {
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
+        .filter-btn.mismatch.active {
+            background: #dc3545;
+            color: white;
+        }
+
+        #results {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 0;
+            list-style: none;
+            margin: 0;
+        }
+
+        .company-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .company-item:hover {
+            background: #e9ecef;
+        }
+
+        .company-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .company-address {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .company-meta {
+            font-size: 11px;
+            color: #999;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .badge-verified {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .loader {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            display: none;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 1000px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-modal:hover,
+        .close-modal:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        table.data-table th,
+        table.data-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 13px;
+            color: #333;
+            /* Enforce dark text */
+        }
+
+        table.data-table th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+        }
+
+        table.data-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        /* Larger Popups and Tooltips */
+        .leaflet-popup-content,
+        .leaflet-tooltip {
+            font-size: 16px !important;
+            line-height: 1.6;
+        }
+
+        .leaflet-popup-content b {
+            font-size: 18px;
+        }
